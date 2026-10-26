@@ -1,0 +1,29 @@
+# The Zenodo release (Excel tables and shapefiles), ~40 MB. It stays local:
+# the data is published on Zenodo, and processing-files/ rebuilds data/ from it.
+# It can also be attached to a GitHub release — see DEPLOYMENT.md.
+original-data/
+
+# The built data in data/ IS committed: ~10 MB, rebuilt only when AlpIce-1
+# changes, and served by GitHub Pages as it is.
+
+# Zipped test copies from scripts/package-test-copy.py.
+dist/
+_site/
+
+# Dev-only environments.
+.pixi/
+node_modules/
+
+__pycache__/
+.DS_Store
+
+# Windows download metadata is not project data.
+*:Zone.Identifier
+
+# Private project notes and working docs, not for the public repository.
+NOTES.md
+TASKS.md
+DEPLOYMENT.md
+DATA_WORKFLOW.md
+AGENTS.md
+.vscode/

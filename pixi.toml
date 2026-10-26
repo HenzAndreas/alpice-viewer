@@ -1,0 +1,25 @@
+# The tools the repository needs: Python with the libraries for the data
+# build. The page itself has no build step and no runtime dependencies.
+# Not yet locked: pixi is not installed on the development machine; run
+# `pixi install` once to create pixi.lock and commit it.
+[workspace]
+name = "alpice-viewer"
+description = "Interactive web map of the AlpIce-1 database of dated palaeoglacier fluctuations in the Alps."
+license = "MIT"
+license-file = "LICENSE"
+readme = "README.md"
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64", "win-64"]
+requires-pixi = ">=0.80"
+
+[dependencies]
+python = "3.12.*"
+pandas = ">=2.2"
+openpyxl = ">=3.1"
+geopandas = ">=1.0"
+
+[tasks]
+build-data = "python processing-files/build_alpice_data.py"
+test = "python -m unittest discover -s tests -v"
+serve = "python scripts/serve.py"
+package-test = "python scripts/package-test-copy.py"

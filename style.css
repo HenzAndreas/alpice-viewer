@@ -1,0 +1,998 @@
+/* Panel, controls and popups from the Little Ice Age viewer's style.css;
+   the AlpIce-specific rules are at the end. */
+
+:root {
+  --bg: #10141c;
+  --panel: rgba(17, 22, 32, 0.92);
+  --border: #2a3242;
+  --text: #e6eaf2;
+  --muted: #8b95a8;
+  /* The wordmark's pink. It is only ever used on the dark panel or the popover,
+     where it runs 8.6:1 and up. */
+  --accent: #d7acce;
+  /* The same hue, darkened and saturated for text on a white fill: --accent
+     there is 1.97:1, which fails AA at any size, and this is 4.7:1. */
+  --accent-ink: #b8479f;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  /* The only controls still drawn by the platform are the sliders and the
+     scrollbar. Left on the light default, a slider's unfilled track comes back
+     near-white and glares against the glass; on the dark one it is a dim grey,
+     which is the same reading as the unticked boxes beside it. The checkboxes
+     take nothing from this — `appearance: none` already took them off the
+     platform entirely. */
+  color-scheme: dark;
+  /* iOS enlarges text on its own when the phone is turned to landscape. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  margin: 0;
+  height: 100%;
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+#map { position: absolute; inset: 0; }
+
+/* The panel floats over the map as frosted glass: a blurred, tinted pane.
+   Blurring the map pulls its colours toward grey, so `saturate` puts the colour
+   back and `brightness` darkens the result again — without that, a bright
+   hillshade passing under the panel washes out the muted field labels. */
+#panel-shell {
+  --glass-blur: 16px;
+  --glass-saturate: 150%;
+  --glass-brightness: 78%;
+  /* The tint's own colour, as bare hsl() channels so that the alpha below can
+     be set against it independently. */
+  --glass-tint: 222 31% 10%;
+  --glass-alpha: 0.62;
+  /* How far the pane below overhangs the panel. A Gaussian blur pulls in
+     detail from well beyond its radius, so one radius of overhang still leaves
+     the outermost pixels short of neighbours; two covers it. */
+  --glass-reach: calc(var(--glass-blur) * 2);
+
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 292px;
+  /* 12px of margin above, and below it the room the scale bar needs in the
+     corner underneath: a MapLibre control's 10px margin plus the ~20px the bar
+     itself is, and some air. Left at 12px both ends, a short viewport hands the
+     panel the whole left edge and the scale sits behind it. It costs the panel
+     40px of height, but only where it had more than it could fill anyway. */
+  max-height: calc(100% - 52px);
+  /* A column, so the panel can be capped by the shell's max-height and scroll
+     inside it rather than growing past the bottom of the map. */
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  /* Cuts the pane's overhang back to the panel's own outline. */
+  overflow: hidden;
+  /* The shadow belongs out here: on the panel it would fall inside the clip
+     above and never be drawn. */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  z-index: 2;
+}
+
+/* `backdrop-filter` samples only the pixels directly behind the element it is
+   set on. On a panel-sized box that leaves the blur with nothing past its own
+   edge to mix in, so the glass stops answering to whatever it is sitting next
+   to — a label or a bright tongue of ice just outside never reaches it. This is
+   the article's fix, with a clip in place of its mask: the filter runs on a box
+   that overhangs the panel on every side, and the shell above crops the
+   overhang away.
+
+   A sibling rather than a child of the panel, because the panel scrolls: an
+   absolutely positioned child of a scroll container travels with the content,
+   and the pane would slide out from under the controls it backs. */
+#panel-glass {
+  position: absolute;
+  inset: calc(-1 * var(--glass-reach));
+  pointer-events: none;
+}
+
+#panel {
+  /* Positioned, so it paints over the pane behind it: within one stacking
+     context every positioned element outranks its unpositioned siblings, and
+     an unpositioned panel would sit *under* the glass and be blurred by it. */
+  position: relative;
+  /* min-height lets the flex item shrink past its content, which is what makes
+     the overflow below scroll instead of the shell simply growing. The scrolling
+     itself belongs to #panel-body, not here: the header carries the collapse
+     button, and a panel taller than the viewport used to scroll it out of reach
+     — on a short screen there was then no way to get the map back. */
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  /* Near-opaque, for the browsers that skip the @supports block below: at the
+     glass alpha alone the map would read straight through an unblurred panel. */
+  background: var(--panel);
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  #panel-glass {
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate))
+      brightness(var(--glass-brightness));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate))
+      brightness(var(--glass-brightness));
+  }
+  #panel {
+    background: hsl(var(--glass-tint) / var(--glass-alpha));
+    /* A light rim rather than the flat --border: on glass the outline reads as
+       the lit edge of the pane, and the inset line is its top bevel. */
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  }
+}
+
+/* The title bar stays put and everything else collapses under it, so the
+   spacing belongs to the body rather than the header — collapsed, the panel is
+   the title alone with no gap hanging off the bottom. */
+#panel header {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+/* The body owns the horizontal padding rather than inheriting the panel's, which
+   is what lets the scrollbar sit inside it. The negative margins stretch the
+   body across the panel's full inner width; the two paddings then put the
+   controls back where they were — 16px on the left, and on the right the ~5px
+   that a `thin` bar leaves of the same 16. `scrollbar-gutter: stable` reserves
+   that gutter whether or not there is anything to scroll, which is what stops
+   the controls reflowing when the bar appears.
+
+   A scroll container clips at its padding box, not its content box, so the left
+   padding is also what gives the checkboxes' focus rings room to be drawn.
+
+   The platform scrollbar is an opaque grey slab against a pane of glass, and the
+   two standard properties are what reduce it to a translucent thumb while
+   leaving it a real scrollbar — the OS keeps its sizing, its click-and-drag and
+   its reduced-motion behaviour, which a div-and-JS reimplementation gives up.
+   This is the Firefox path: `thin` is around 11px, and padding-right is the rest
+   of the 16. */
+#panel-body {
+  min-height: 0;
+  overflow-y: auto;
+  margin: 14px -16px 0;
+  padding-left: 16px;
+  padding-right: 5px;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+
+/* Blink and WebKit stop honouring ::-webkit-scrollbar as soon as either standard
+   property is set, so this hands them back — they are the only engines that can
+   set the gutter's own width, and 16px of gutter carrying a 6px thumb is what
+   centres the bar in the padding instead of leaving it against the border. The
+   transparent border plus a content-box clip is what insets the thumb; a margin
+   is not available here. Firefox does not match the query and keeps the pair
+   above, where the gutter is whatever `thin` happens to be. */
+@supports selector(::-webkit-scrollbar) {
+  #panel-body {
+    padding-right: 0;
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+  #panel-body::-webkit-scrollbar { width: 16px; }
+  #panel-body::-webkit-scrollbar-track { background: transparent; }
+  #panel-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.28);
+    background-clip: content-box;
+    border: 5px solid transparent;
+    border-radius: 8px;
+  }
+  #panel-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.45);
+    background-clip: content-box;
+  }
+}
+
+/* Collapsing is a class on the panel rather than `hidden` on the body, so that
+   a phone-sized screen is already collapsed on the very first paint. The script
+   that decides it is a deferred module: setting `hidden` from there runs after
+   layout, which showed the full-height panel for a frame before it snapped
+   shut. Neither class is present until the script runs, which is what the
+   narrow-screen default below is for. */
+#panel.collapsed #panel-body { display: none; }
+/* The heading is deliberately plain text until the project has an established
+  name or visual identity. */
+#panel h1 { margin: 0; font-size: 18px; line-height: 1.2; font-weight: 650; }
+#panel #subtitle { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+#panel #paper { margin: 4px 0 0; font-size: 12px; }
+#panel #paper a { color: var(--accent); text-decoration: none; }
+#panel #paper a:hover { text-decoration: underline; }
+
+#panel-toggle {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin: -2px -4px 0 0;
+  padding: 0;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+#panel-toggle:hover { color: var(--text); }
+
+.control { margin-bottom: 14px; }
+.control > label,
+.control-head > label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.control output { color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* A section label with something beside it — currently the colour-map credit
+   next to SCALE. The row carries the label's bottom margin so the two stay on
+   one baseline. */
+.control-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+/* The label takes the slack, so the info mark sits against the right edge —
+   where it does on the hillshade and inventory rows, whose labels flex too. */
+.control-head > label { flex: 1; margin-bottom: 0; }
+
+.control.checkbox { display: flex; align-items: center; gap: 8px; }
+.control.checkbox > label {
+  flex: 1;
+  margin: 0;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  color: var(--text);
+}
+
+/* ---------- the panel's two-state controls ----------
+ *
+ * A segment and a checkbox are the same control at two sizes: off is a
+ * translucent grey wash, on is a white fill carrying an accent-coloured mark —
+ * text in one, a tick in the other. Both states are stated once, below, so a
+ * change to one cannot leave the other behind; each control then sets only what
+ * genuinely differs, which is its geometry and what goes inside the fill.
+ *
+ * The wash is mixed from white rather than being a fixed grey, so it holds
+ * against whatever the panel happens to be covering rather than against one
+ * assumed backdrop colour.
+ *
+ * Neither is glass itself. A second backdrop-filter inside the first only
+ * re-blurs an already-blurred surface, and the result is muddier than a flat
+ * wash for twice the compositing. */
+.segmented button,
+input[type="checkbox"] {
+  background: rgba(255, 255, 255, 0.13);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition:
+    color 0.14s ease,
+    background-color 0.14s ease,
+    border-color 0.14s ease;
+}
+/* The hover lift has to exclude whatever is already on: it is more specific
+   than the two selected rules below and would otherwise grey out their fill. */
+.segmented button:hover:not(:disabled):not([aria-checked="true"]),
+input[type="checkbox"]:hover:not(:checked) {
+  background-color: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.segmented button[aria-checked="true"],
+input[type="checkbox"]:checked {
+  background-color: #fff;
+  border-color: #fff;
+}
+
+.segmented { display: flex; gap: 4px; }
+.segmented button {
+  flex: 1;
+  padding: 6px 4px;
+  font: inherit;
+  font-size: 12px;
+  color: #fff;
+  border-radius: 6px;
+}
+.segmented button[aria-checked="true"] { font-weight: 600; color: var(--accent-ink); }
+/* Both greys are the same grey — the button names something not on the map —
+   but only one of them refuses the click. `aria-disabled` marks a combination
+   that cannot exist and that a press resolves by moving the other row, so it
+   keeps the pointer cursor and the hover lift below: it does something. */
+.segmented button:disabled,
+.segmented button[aria-disabled="true"] { opacity: 0.35; }
+.segmented button:disabled { cursor: not-allowed; }
+
+/* `appearance: none` takes the native tick along with the native box, so the
+   only thing left to draw is the tick. 14px keeps it the size the platform box
+   was, and the radius is scaled down from the segments' 6px to match at this
+   size rather than to equal it. */
+input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  /* The rows already space themselves with `gap`; the UA margin was adding a
+     few more pixels on top of it. */
+  margin: 0;
+  border-radius: 4px;
+}
+/* A background image rather than a ::before, because an input is a replaced
+   element and its pseudo-elements are not guaranteed to render. The cost is
+   that --accent-ink has to be written out as %23b8479f — a data URI cannot read
+   a custom property — so the tick and the segments' text are kept in step by
+   hand. */
+input[type="checkbox"]:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23b8479f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.6 6.2 5 8.6 9.4 3.6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px;
+}
+/* The platform ring goes with the platform box. */
+input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* White rather than the accent: the accent marks the selected segment, and a
+   filled track in the same colour reads as a second selection. The handle turns
+   white along with it — `accent-color` paints the whole control from a single
+   value, and splitting the two means drawing the track by hand in both
+   engines, which is more machinery than the difference is worth. */
+/* `margin: 0` for the same reason as the checkbox above: the UA margin sits
+   outside the 100% width, so the track overhung its own column by 2px. */
+input[type="range"] { width: 100%; margin: 0; accent-color: #fff; }
+
+/* Shared by the panel and the inventories toggle: one glyph, flipped, so the
+   two states cannot drift apart. `up` marks the collapsed one. */
+/* A section that can be opened shows a plus; an open one shows a down chevron
+   pointing at what it revealed. `closed` is set in the markup and by
+   collapsible() in js/ui.js. */
+.chevron { display: flex; }
+.chevron .icon-closed,
+.chevron.closed .icon-open { display: none; }
+.chevron.closed .icon-closed { display: block; }
+
+#credits p,
+#contribute p { margin: 0 0 8px; font-size: 12px; line-height: 1.45; color: var(--muted); }
+#contribute a { color: var(--accent); text-decoration: none; }
+#contribute a:hover { text-decoration: underline; }
+#credits strong { color: var(--text); font-weight: 600; }
+#credits a { color: var(--accent); text-decoration: none; }
+#credits a:hover { text-decoration: underline; }
+
+/* Halfway between the two obvious choices. --border is a near-black hairline,
+   which all but vanishes once a bright composite is showing through the glass
+   behind it; --muted at full strength is heavier than the section labels the
+   rule is separating, and starts to read as the loudest thing in the panel.
+   Mixing --muted down to 45% keeps the grey of the labels but not their weight,
+   and being translucent it holds up over a dark backdrop and a bright one
+   alike. The flat --border first is for browsers without color-mix(). */
+#panel hr {
+  height: 0;
+  margin: 16px 0 14px;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-top-color: color-mix(in srgb, var(--muted) 45%, transparent);
+}
+
+
+/* The 3D/2D switch under the navigation control. MapLibre's own buttons carry a
+   background-image glyph and no text styling, so the label needs its own; the
+   colour matches the icons beside it rather than the panel's light-on-dark. */
+.maplibregl-ctrl-3d {
+  font: 600 11px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: 0.04em;
+  color: #333;
+}
+
+
+/* The page hides things by setting `hidden` from JS, and several of them carry
+   an id-level `display` rule — #legend-labels is flex, #legend-channels is
+   grid. An id selector outranks the user-agent's `[hidden] { display: none }`,
+   so without this those elements stay on screen with the attribute set and no
+   sign anything is wrong. It is invisible to the tests too, which can only see
+   the property. */
+[hidden] { display: none !important; }
+
+#status {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  font-size: 13px;
+  z-index: 3;
+}
+
+.maplibregl-popup-content {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  /* MapLibre's default is 15px top and bottom, which leaves the first heading
+     and the last value floating. The close button sits in the right inset. */
+  padding: 9px 12px 10px;
+}
+/* Nudged in to match the tighter padding, and toned down so it does not read as
+   the loudest thing in the popup. */
+.maplibregl-popup-close-button {
+  top: 1px;
+  right: 3px;
+  color: var(--muted);
+  font-size: 15px;
+}
+.maplibregl-popup-close-button:hover { color: var(--text); background: transparent; }
+.maplibregl-popup-tip { border-top-color: var(--panel); border-bottom-color: var(--panel); }
+.maplibregl-ctrl-attrib { font-size: 10px; }
+
+@media (max-width: 640px) {
+  #panel-shell {
+    /* Stops clear of the map controls instead of running the full width: a
+       MapLibre control group is 29px wide inside a 10px margin, so a panel
+       reaching the right edge sits on top of the zoom buttons. */
+    right: 52px;
+    width: auto;
+    max-height: 46%;
+  }
+  /* The pre-script default here, overridden by `.expanded` once the script has
+     run or the reader has tapped. On wide screens neither class is present and
+     the body is simply visible. */
+  #panel:not(.expanded) #panel-body { display: none; }
+
+  /* Collapsed on a phone, the panel is a slim see-through label: the title in
+     small type and the two buttons, hugging its content rather than spanning
+     the screen, so the map stays visible behind and beside it. The frosted
+     pane and the shadow are dropped; a text shadow keeps it legible over
+     snow and imagery alike. */
+  #panel-shell:has(> #panel:not(.expanded)) {
+    right: auto;
+    box-shadow: none;
+  }
+  #panel-shell:has(> #panel:not(.expanded)) #panel-glass { display: none; }
+  #panel:not(.expanded) {
+    padding: 5px 8px;
+    background: hsl(var(--glass-tint) / 0.3);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: none;
+  }
+  #panel:not(.expanded) header { align-items: center; gap: 6px; }
+  #panel:not(.expanded) h1 {
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  }
+  #panel:not(.expanded) #subtitle,
+  #panel:not(.expanded) #paper { display: none; }
+  #panel:not(.expanded) #panel-toggle {
+    margin: 0;
+    color: var(--text);
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+  }
+}
+
+.section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 0;
+  font: inherit;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.section-toggle:hover { color: var(--text); }
+
+/* The last toggle in a collapsed-by-default block should not leave a gap above
+   whatever follows it. */
+#extras .control:last-child { margin-bottom: 0; }
+#extras-section,
+#outlines-section,
+#contribute-section,
+#credits-section { margin-bottom: 0; }
+#outlines .layer-row:last-child { margin-bottom: 0; }
+
+.maplibregl-popup-content hr {
+  height: 0;
+  margin: 7px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+/* Headings match the panel's field labels (PRODUCT, YEAR, ...) so a popup reads
+ * as the same kind of thing as the legend beside it. */
+.maplibregl-popup-content .pop-head {
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.maplibregl-popup-content .pk { color: var(--text); }
+.maplibregl-popup-content > div + .pop-head { margin-top: 7px; }
+/* Leave room for the close button on the first heading only. */
+.maplibregl-popup-content .pop-head:first-child { padding-right: 16px; }
+
+/* ---------- glacier-state switch ---------- */
+
+/* One switch between the two states: the names either side of a track, the
+   active name in white, the knob sliding toward it. The whole row is the
+
+/* ---------- AlpIce-1 ---------- */
+
+.section-label {
+  margin-bottom: 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.section-note { text-transform: none; letter-spacing: 0; font-size: 11px; opacity: 0.8; }
+.hint { margin: 6px 0 0; font-size: 11px; color: var(--muted); }
+
+/* A layer: checkbox, name with a one-line hint under it, feature count. */
+.layer-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.layer-row input[type="checkbox"] { margin-top: 3px; }
+.layer-row label { flex: 1; font-size: 13px; cursor: pointer; }
+.layer-hint { display: block; font-size: 11px; color: var(--muted); }
+.count {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  padding-top: 2px;
+}
+
+/* On/off chips for the method and confidence filters, drawn like the
+   segmented control's two states. */
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chips button {
+  padding: 4px 9px;
+  font: inherit;
+  font-size: 12px;
+  color: #fff;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.13);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+}
+.chips button:hover:not([aria-pressed="true"]) { background: rgba(255, 255, 255, 0.24); }
+.chips button[aria-pressed="true"] {
+  font-weight: 600;
+  color: var(--accent-ink);
+  background: #fff;
+  border-color: #fff;
+}
+
+/* Two range inputs on one track: only the thumbs take the pointer, so each
+   handle can be dragged although the inputs overlap. The selected span is
+   painted on the track from --lo and --hi, set in js/app.js. */
+.dual-range {
+  --lo: 0%;
+  --hi: 100%;
+  position: relative;
+  height: 18px;
+  margin-bottom: 4px;
+}
+.dual-range::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 7px;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.18) var(--lo),
+    #fff var(--lo),
+    #fff var(--hi),
+    rgba(255, 255, 255, 0.18) var(--hi)
+  );
+}
+.dual-range input[type="range"] {
+  position: absolute;
+  inset: 0;
+  height: 18px;
+  background: none;
+  pointer-events: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.dual-range input[type="range"]::-webkit-slider-runnable-track { background: none; }
+.dual-range input[type="range"]::-moz-range-track { background: none; }
+.dual-range input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--accent-ink);
+  pointer-events: auto;
+  cursor: pointer;
+}
+.dual-range input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--accent-ink);
+  pointer-events: auto;
+  cursor: pointer;
+}
+.dual-range input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--accent); }
+
+#legend-bar { height: 10px; border-radius: 3px; margin-top: 4px; }
+#legend-ticks {
+  position: relative;
+  height: 14px;
+  font-size: 10px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+#legend-ticks span { position: absolute; top: 1px; transform: translateX(-50%); }
+#legend-ticks span:first-child { transform: none; }
+#legend-ticks span:last-child { transform: translateX(-100%); }
+
+#shade-strength-row { margin-top: -6px; padding-left: 22px; }
+
+#status[data-level="error"] { border-color: #b4535b; }
+
+/* ---------- popup ---------- */
+
+.alpice-popup .maplibregl-popup-content { padding: 9px 12px 10px; }
+.pop-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 18px 8px 0;
+}
+.pop-tabs { flex: 1; max-width: 170px; margin-left: auto; }
+.pop-tabs button { padding: 3px 4px; font-size: 11px; }
+.pop-back {
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--accent);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.pop-age {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.pop-note { margin: 2px 0 8px; font-size: 11px; color: var(--muted); }
+.pop-row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 8px;
+  padding: 2px 0;
+}
+.pop-key { color: var(--muted); }
+.pop-key[data-info] { cursor: help; text-decoration: underline dotted rgba(255, 255, 255, 0.35); text-underline-offset: 2px; }
+.pop-key[data-info]:hover,
+.pop-key[data-info]:focus-visible { color: var(--text); outline: none; }
+
+/* The description of a popup field, shown by js/popup.js on hover or tap. */
+.info-tip {
+  position: fixed;
+  z-index: 10;
+  max-width: 300px;
+  padding: 7px 9px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text);
+  background: #1b2130;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+.pop-val { overflow-wrap: anywhere; }
+.pop-val a, .pop-body a { color: var(--accent); text-decoration: none; }
+.pop-val a:hover { text-decoration: underline; }
+.pop-table { max-height: 46vh; overflow-y: auto; margin-right: -6px; padding-right: 6px; }
+.pop-group {
+  margin: 8px 0 2px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+.pop-group:first-child { margin-top: 0; border-top: 0; padding-top: 0; }
+.pop-body .pop-head { margin-top: 8px; }
+.pop-body > .pop-head:first-child { margin-top: 0; }
+.pop-list { display: flex; flex-direction: column; gap: 2px; max-height: 30vh; overflow-y: auto; }
+.pop-link {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 6px;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.pop-link:hover { background: rgba(255, 255, 255, 0.16); }
+.swatch {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.6);
+}
+.pop-loading { color: var(--muted); }
+/* The popup never outgrows the map: its body scrolls instead. */
+.alpice-popup .pop-body { max-height: min(62vh, 560px); overflow-y: auto; margin-right: -6px; padding-right: 6px; }
+.alpice-popup .pop-table { max-height: none; overflow: visible; margin-right: 0; padding-right: 0; }
+
+/* ---------- intro tour (from the Little Ice Age viewer) ---------- */
+
+#panel header > div { flex: 1; min-width: 0; }
+#tour-open {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: -2px -2px 0 0;
+  padding: 0;
+  font: 600 12px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--muted);
+  background: none;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  cursor: pointer;
+}
+#tour-open:hover { color: var(--accent); }
+
+#tour { position: fixed; inset: 0; z-index: 30; }
+
+/* After the tour is left early: a small box under the "?" saying where it went. */
+#tour-hint {
+  position: fixed;
+  z-index: 30;
+  max-width: 220px;
+  padding: 7px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--accent-ink);
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  animation: tour-hint-in 0.2s ease;
+}
+#tour-hint::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: calc(var(--arrow-x, 50%) - 5px);
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  transform: rotate(45deg);
+}
+@keyframes tour-hint-in { from { opacity: 0; transform: translateY(-4px); } }
+/* The cut-out: transparent itself, its shadow is the dimmed page. Light enough
+   that the map stays readable while the "Show me" flight plays out behind. */
+.tour-spot {
+  position: fixed;
+  border-radius: 8px;
+  box-shadow: 0 0 0 9999px rgba(5, 8, 14, 0.5), 0 0 0 2px var(--accent);
+  pointer-events: none;
+  transition: all 0.25s ease;
+}
+.tour-card {
+  position: fixed;
+  width: 300px;
+  max-width: calc(100vw - 20px);
+  padding: 14px 16px 12px;
+  color: var(--text);
+  background: #171d29;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  outline: none;
+  transition: left 0.25s ease, top 0.25s ease;
+}
+.tour-card h2 { margin: 0 0 6px; font-size: 15px; line-height: 1.3; }
+.tour-count { margin: 0 0 4px; font-size: 11px; color: var(--muted); }
+.tour-text { margin: 0; font-size: 13px; line-height: 1.5; }
+.tour-text + .tour-text { margin-top: 6px; }
+.tour-card button {
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.tour-card button:hover { background: rgba(255, 255, 255, 0.2); }
+.tour-card .tour-action {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 7px 10px;
+  font-weight: 600;
+  color: #171d29;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.tour-card .tour-action:hover { background: #e6c6df; }
+.tour-nav { display: flex; gap: 6px; justify-content: flex-end; margin-top: 12px; }
+.tour-card .tour-skip { margin-right: auto; color: var(--muted); background: none; border-color: transparent; }
+.tour-card .tour-next { font-weight: 600; color: var(--accent-ink); background: #fff; border-color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-spot, .tour-card { transition: none; }
+  #tour-hint { animation: none; }
+}
+
+/* A short stroke in an outline layer's colour, beside its name. */
+.line-swatch {
+  flex: none;
+  width: 18px;
+  height: 3px;
+  margin-top: 8px;
+  border-radius: 2px;
+  background: var(--swatch, #fff);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+/* ---------- filters (js/filters.js) ---------- */
+
+.control-head .section-label { flex: 1; margin-bottom: 0; }
+.text-button {
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--accent);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.text-button:hover { text-decoration: underline; }
+
+/* The active filters, each a tag that removes itself. */
+#filter-summary { display: flex; flex-wrap: wrap; gap: 4px; }
+#filter-summary .hint { margin: 0; }
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 6px 3px 9px;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  color: #171d29;
+  background: var(--accent);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.filter-tag:hover { background: #e6c6df; }
+.filter-x { font-size: 14px; line-height: 1; opacity: 0.7; }
+
+/* Labels and chips with a description show it on hover or tap. */
+.section-label [data-info]:not([data-info=""]) {
+  cursor: help;
+  text-decoration: underline dotted rgba(255, 255, 255, 0.35);
+  text-underline-offset: 2px;
+}
+
+/* The site-type list: code, name, number of ages. */
+.list-actions { display: flex; gap: 12px; margin: 4px 0 6px; }
+.site-row { display: flex; align-items: baseline; gap: 8px; }
+.site-code {
+  flex: none;
+  min-width: 52px;
+  font: 600 11px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--accent);
+}
+#site-types-section { margin-bottom: 0; }
+#site-types .hint { margin-top: 0; }
+
+/* While filters are active, their summary stays at the top of the scrolling
+   panel, so what is hidden is never out of sight. */
+#filter-status.active {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0 -6px 14px;
+  padding: 8px 6px;
+  background: hsl(222 31% 13% / 0.97);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+}
+.filter-count { flex-basis: 100%; margin: 0 0 2px !important; }
+.filter-count.empty { color: #f2a7b0; }
+
+/* ---------- narrowing filters, colour by (2026-10-23) ---------- */
+
+/* With nothing filtered every chip is plain; selected values are filled. */
+#filter-section .chips button[aria-pressed="false"] {
+  font-weight: 400;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+#filter-section .chips button[aria-pressed="false"]:hover { background: rgba(255, 255, 255, 0.2); }
+.chips button { display: inline-flex; align-items: center; gap: 5px; }
+.chip-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.55);
+}
+
+/* Site types: whole rows are the toggles. */
+.site-row {
+  width: 100%;
+  padding: 3px 6px;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: none;
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.site-row:hover { background: rgba(255, 255, 255, 0.1); }
+.site-row[aria-pressed="true"] { background: #fff; color: var(--accent-ink); font-weight: 600; }
+.site-row[aria-pressed="true"] .site-code,
+.site-row[aria-pressed="true"] .count { color: var(--accent-ink); }
+.site-row .site-name { flex: 1; }
+
+#category-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; font-size: 12px; }
+#category-legend .hint { flex-basis: 100%; margin: 2px 0 0; }
+.legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.legend-item .swatch { width: 11px; height: 11px; }
+#colour-by button { padding: 5px 2px; font-size: 11.5px; }

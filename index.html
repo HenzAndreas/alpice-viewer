@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AlpIce-1 — dated palaeoglacier fluctuations in the Alps</title>
+
+    <meta name="description"
+          content="AlpIce-1 on a map: radiocarbon and surface exposure ages, event ages and dated landforms constraining glacier fluctuations across the European Alps from the Last Glacial Maximum to the Holocene." />
+    <meta name="theme-color" content="#10141c" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="AlpIce-1 — dated palaeoglacier fluctuations in the Alps" />
+    <meta property="og:description"
+          content="Radiocarbon and surface exposure ages constraining Alpine glacier fluctuations from the Last Glacial Maximum to the Holocene." />
+
+    <link rel="icon" href="favicon/favicon.svg" type="image/svg+xml" />
+
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <div id="panel-shell">
+      <div id="panel-glass" aria-hidden="true"></div>
+      <aside id="panel">
+        <header>
+          <div>
+            <h1 id="title">AlpIce-1</h1>
+            <p id="subtitle">Dated palaeoglacier fluctuations in the Alps, from the Last Glacial Maximum to the Holocene</p>
+            <p id="paper">
+              <a href="https://doi.org/10.1111/bor.70084" target="_blank" rel="noopener"
+                 title="Kamleitner, S., Ivy-Ochs, S., Leger, T. P. M., Henz, A., Nussbaumer, S. U., Vieli, A. and Jouvet, G. (2026). AlpIce-1: a database of geochronological and geomorphological constraints on Alps-wide palaeoglacier fluctuations between the Last Glacial Maximum and the Holocene. Boreas. https://doi.org/10.1111/bor.70084">Kamleitner et al. (2026), Boreas</a>
+              · <a href="https://doi.org/10.5281/zenodo.21841122" target="_blank" rel="noopener"
+                   title="The AlpIce-1 tables and GIS files on Zenodo">Data</a>
+            </p>
+          </div>
+          <!-- Replays the intro tour (js/tour.js), which opens by itself on a first visit. -->
+          <button type="button" id="tour-open" title="Show the intro tour" aria-label="Show the intro tour">?</button>
+          <button type="button" id="panel-toggle" aria-expanded="true" aria-controls="panel-body">
+            <span class="chevron" aria-hidden="true"
+                  ><svg class="icon-open" viewBox="0 0 12 12" width="12" height="12" fill="none"
+                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round"><path d="M2.5 4.5 6 8 9.5 4.5" /></svg
+                  ><svg class="icon-closed" viewBox="0 0 12 12" width="12" height="12" fill="none"
+                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 2v8M2 6h8" /></svg
+                ></span>
+          </button>
+        </header>
+
+        <div id="panel-body">
+
+          <!-- The three AlpIce-1 products. Click a symbol on the map for its record. -->
+          <section class="control" id="layers-section">
+            <div class="section-label">Layers</div>
+            <div class="layer-row">
+              <input type="checkbox" id="show-samples" />
+              <label for="show-samples">Individual ages
+                <span class="layer-hint">¹⁰Be, ³⁶Cl and ¹⁴C dates</span></label>
+              <output id="count-samples" class="count"></output>
+            </div>
+            <div class="layer-row">
+              <input type="checkbox" id="show-events" />
+              <label for="show-events">Event ages
+                <span class="layer-hint">at the mean location of their ages</span></label>
+              <output id="count-events" class="count"></output>
+            </div>
+            <div class="layer-row">
+              <input type="checkbox" id="show-landforms" />
+              <label for="show-landforms">Landform catalogue
+                <span class="layer-hint">coloured by event age; dashed: not dated</span></label>
+              <output id="count-landforms" class="count"></output>
+            </div>
+          </section>
+
+          <!-- How the symbols are coloured: by age, or by the categories of
+               Fig. 3 in the paper, with its colours (js/filters.js). -->
+          <section class="control" id="colour-section">
+            <div class="section-label">Colour by</div>
+            <div id="colour-by" class="segmented" role="radiogroup" aria-label="Colour by">
+              <button type="button" role="radio" data-value="age" aria-checked="true">Age</button>
+              <button type="button" role="radio" data-value="method" aria-checked="false">Method</button>
+              <button type="button" role="radio" data-value="confidence" aria-checked="false">Confidence</button>
+              <button type="button" role="radio" data-value="context" aria-checked="false">Context</button>
+            </div>
+            <div id="category-legend" hidden></div>
+          </section>
+
+          <section class="control" id="age-section">
+            <div class="control-head">
+              <label for="age-min">Age</label>
+              <output id="age-value">0 – 30+ ka</output>
+            </div>
+            <div id="age-track" class="dual-range">
+              <input type="range" id="age-min" min="0" max="30" value="0" step="0.5" aria-label="Youngest age shown (ka)" />
+              <input type="range" id="age-max" min="0" max="30" value="30" step="0.5" aria-label="Oldest age shown (ka)" />
+            </div>
+            <div id="legend-bar" aria-hidden="true"></div>
+            <div id="legend-ticks" aria-hidden="true"></div>
+            <p class="hint">Thousand years before present.<span id="age-colour-note"> Grey: no recalculated age.</span></p>
+          </section>
+
+          <!-- Filters (js/filters.js). The summary names every active filter,
+               age included, so what is hidden is always visible at a glance. -->
+          <!-- Directly in the scrolling body, so that while any filter is active it
+               stays pinned at the top of the panel (style.css). -->
+          <section class="control" id="filter-status">
+            <div class="control-head">
+              <span class="section-label">Filters <span class="section-note">ages and events</span></span>
+              <button type="button" id="filters-reset" class="text-button" hidden>Reset</button>
+            </div>
+            <div id="filter-summary" aria-live="polite"></div>
+          </section>
+
+          <div id="filter-section">
+
+          <section class="control">
+            <div class="section-label">Method</div>
+            <div id="methods" class="chips" role="group" aria-label="Dating method"></div>
+          </section>
+
+          <section class="control">
+            <div class="section-label">Confidence <span class="section-note">individual ages</span></div>
+            <div id="confidence" class="chips" role="group" aria-label="Confidence rating"></div>
+          </section>
+
+          <section class="control">
+            <div class="section-label"><span id="contexts-label">Palaeoglaciological context</span></div>
+            <div id="contexts" class="chips" role="group" aria-label="Palaeoglaciological context"></div>
+          </section>
+
+          <section class="control" id="site-types-section">
+            <button type="button" class="section-toggle" data-section="site-types" aria-expanded="false" aria-controls="site-types">
+              <span>Site type <span id="site-types-state" class="section-note"></span></span><span class="chevron closed" aria-hidden="true"
+                  ><svg class="icon-open" viewBox="0 0 12 12" width="12" height="12" fill="none"
+                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round"><path d="M2.5 4.5 6 8 9.5 4.5" /></svg
+                  ><svg class="icon-closed" viewBox="0 0 12 12" width="12" height="12" fill="none"
+                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 2v8M2 6h8" /></svg
+                ></span>
+            </button>
+            <div id="site-types" hidden>
+              <p class="hint">The code is how each Site-ID begins, e.g. <b>ICEM</b>-Wuethrich2018-A.</p>
+              <div class="list-actions">
+                <button type="button" class="text-button" id="site-types-all" hidden>Show all</button>
+              </div>
+              <div id="site-types-list"></div>
+            </div>
+          </section>
+          </div>
+
+          <hr />
+
+          <!-- Context only: lines, not clickable (js/outlines.js). Collapsed, like
+               Map options: secondary to the AlpIce-1 layers. The LGM line is on
+               even while the section is closed. -->
+          <section class="control" id="outlines-section">
+            <button type="button" class="section-toggle" data-section="outlines" aria-expanded="false" aria-controls="outlines">
+              <span>Glacier outlines</span><span class="chevron closed" aria-hidden="true"
+                  ><svg class="icon-open" viewBox="0 0 12 12" width="12" height="12" fill="none"
+                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round"><path d="M2.5 4.5 6 8 9.5 4.5" /></svg
+                  ><svg class="icon-closed" viewBox="0 0 12 12" width="12" height="12" fill="none"
+                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 2v8M2 6h8" /></svg
+                ></span>
+            </button>
+            <div id="outlines" hidden>
+              <div class="layer-row">
+                <input type="checkbox" id="outline-today" />
+                <label for="outline-today">Today (2015–2017)
+                  <span class="layer-hint">Paul et al. (2020)</span></label>
+                <span class="line-swatch" id="outline-today-swatch" aria-hidden="true"></span>
+              </div>
+              <div class="layer-row">
+                <input type="checkbox" id="outline-lia" />
+                <label for="outline-lia">Little Ice Age
+                  <span class="layer-hint">Reinthaler and Paul (2025)</span></label>
+                <span class="line-swatch" id="outline-lia-swatch" aria-hidden="true"></span>
+              </div>
+              <div class="layer-row">
+                <input type="checkbox" id="outline-lgm" />
+                <label for="outline-lgm">Last Glacial Maximum
+                  <span class="layer-hint">GLACIMONTIS, Lima et al. (2026); only the outline, ice-free peaks removed, smoothed</span></label>
+                <span class="line-swatch" id="outline-lgm-swatch" aria-hidden="true"></span>
+              </div>
+              <!-- TEMPORARY: for comparing the two LGM outlines. -->
+              <div class="layer-row">
+                <input type="checkbox" id="outline-lgm_ehlers" />
+                <label for="outline-lgm_ehlers">Last Glacial Maximum (comparison)
+                  <span class="layer-hint">modified after Ehlers et al. (2011)</span></label>
+                <span class="line-swatch" id="outline-lgm_ehlers-swatch" aria-hidden="true"></span>
+              </div>
+            </div>
+          </section>
+
+          <hr />
+
+          <section class="control" id="extras-section">
+            <button type="button" class="section-toggle" data-section="extras" aria-expanded="false" aria-controls="extras">
+              <span>Map options</span><span class="chevron closed" aria-hidden="true"
+                  ><svg class="icon-open" viewBox="0 0 12 12" width="12" height="12" fill="none"
+                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round"><path d="M2.5 4.5 6 8 9.5 4.5" /></svg
+                  ><svg class="icon-closed" viewBox="0 0 12 12" width="12" height="12" fill="none"
+                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 2v8M2 6h8" /></svg
+                ></span>
+            </button>
+            <div id="extras" hidden>
+              <section class="control">
+                <div id="basemap-style" class="segmented" role="radiogroup" aria-label="Basemap">
+                  <button type="button" role="radio" data-value="relief" aria-checked="true">Hillshade</button>
+                  <button type="button" role="radio" data-value="imagery" aria-checked="false">Satellite</button>
+                </div>
+              </section>
+              <div id="shade-rows" hidden>
+                <section class="control checkbox">
+                  <input type="checkbox" id="imagery-shade" checked />
+                  <label for="imagery-shade">Hillshade over satellite</label>
+                </section>
+                <section class="control" id="shade-strength-row">
+                  <label for="shade-strength">
+                    Strength <output id="shade-strength-value">30%</output>
+                  </label>
+                  <input type="range" id="shade-strength" min="0" max="100" value="30" step="1" />
+                </section>
+              </div>
+              <section class="control checkbox">
+                <input type="checkbox" id="labels" />
+                <label for="labels">Place labels</label>
+              </section>
+            </div>
+          </section>
+
+          <hr />
+
+          <!-- Corrections and new studies for the database. The address is not
+               written in the page: js/app.js builds the mailto link, which keeps
+               it away from address-harvesting bots that read the HTML. -->
+          <section class="control" id="contribute-section">
+            <button type="button" class="section-toggle" data-section="contribute" aria-expanded="false" aria-controls="contribute">
+              <span>Contribute to AlpIce</span><span class="chevron closed" aria-hidden="true"
+                  ><svg class="icon-open" viewBox="0 0 12 12" width="12" height="12" fill="none"
+                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round"><path d="M2.5 4.5 6 8 9.5 4.5" /></svg
+                  ><svg class="icon-closed" viewBox="0 0 12 12" width="12" height="12" fill="none"
+                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 2v8M2 6h8" /></svg
+                ></span>
+            </button>
+            <div id="contribute" hidden>
+              <p>
+                We welcome corrections, missing information as well as relevant studies not yet included
+                in AlpIce-1, especially newly published work, via
+                <a id="contribute-mail">e-mail</a>. All incoming
+                information will be archived for possible future versions of the AlpIce database.
+              </p>
+            </div>
+          </section>
+
+          <hr />
+
+          <section class="control" id="credits-section">
+            <button type="button" class="section-toggle" data-section="credits" aria-expanded="false" aria-controls="credits">
+              <span>Credits</span><span class="chevron closed" aria-hidden="true"
+                  ><svg class="icon-open" viewBox="0 0 12 12" width="12" height="12" fill="none"
+                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round"><path d="M2.5 4.5 6 8 9.5 4.5" /></svg
+                  ><svg class="icon-closed" viewBox="0 0 12 12" width="12" height="12" fill="none"
+                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 2v8M2 6h8" /></svg
+                ></span>
+            </button>
+            <div id="credits" hidden>
+              <p>
+                <strong>Data:</strong> AlpIce-1,
+                <a href="https://doi.org/10.1111/bor.70084" target="_blank" rel="noopener">Kamleitner, S.,
+                  Ivy-Ochs, S., Leger, T. P. M., Henz, A., Nussbaumer, S. U., Vieli, A. and Jouvet, G. (2026),
+                  Boreas</a>. Tables and GIS files:
+                <a href="https://doi.org/10.5281/zenodo.21841122" target="_blank" rel="noopener">Zenodo,
+                  doi:10.5281/zenodo.21841122</a>. Please cite the paper when using the data, and the
+                original studies linked in each record.
+              </p>
+              <p>
+                <strong>Glacier outlines:</strong> Last Glacial Maximum: GLACIMONTIS, Lima, A. C., Dulfer,
+                H. E., Hughes, A. L. C., Margold, M., Barr, I., Laabs, B. J. C. and Flantua, S. G. A. (2026),
+                <a href="https://doi.org/10.1038/s41597-026-06841-z" target="_blank" rel="noopener">Mountain
+                  glacier extents at the Last Glacial Maximum, Scientific Data</a>; data:
+                <a href="https://doi.org/10.5281/zenodo.15600659" target="_blank" rel="noopener">Zenodo,
+                  doi:10.5281/zenodo.15600659</a>, CC BY 4.0 (the Alps from the "Filtered Reconstructed
+                Paleoglaciers" layer; modified here: only the outline is shown, the ice-free peaks
+                (nunataks) inside it are removed, and the outline, traced from a ~70 m grid, is
+                smoothed). Little Ice Age:
+                <a href="https://doi.org/10.5194/tc-19-753-2025" target="_blank" rel="noopener">Reinthaler and
+                  Paul (2025)</a>, as in the
+                <a href="https://henzandreas.github.io/little-ice-age-glacier-viewer/" target="_blank"
+                   rel="noopener">Little Ice Age glacier viewer</a>, which also shows their attributes.
+                Today (2015–2017):
+                <a href="https://doi.org/10.5194/essd-12-1805-2020" target="_blank" rel="noopener">Paul et
+                  al. (2020)</a>, CC BY 4.0. The outlines are simplified for display.
+              </p>
+              <p id="data-note"></p>
+              <p>
+                <strong>Viewer:</strong> maintained by Andreas Henz; based on the
+                <a href="https://henzandreas.github.io/little-ice-age-glacier-viewer/" target="_blank"
+                   rel="noopener">Little Ice Age glacier viewer</a>, itself adapted from Luis Q. Gentner's GLACE viewer. The code was written with the
+                help of Claude (Anthropic).
+              </p>
+              <p>
+                <strong>Map data:</strong> terrain ©
+                <a href="https://mapterhorn.com/attribution/" target="_blank" rel="noopener">Mapterhorn</a>;
+                imagery © Esri, Maxar, Earthstar Geographics and the GIS User Community; labels ©
+                <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap
+                contributors</a>, served by <a href="https://protomaps.com" target="_blank" rel="noopener">Protomaps</a>
+                (or Esri when the page is opened from disk); rendering by
+                <a href="https://maplibre.org" target="_blank" rel="noopener">MapLibre</a>.
+              </p>
+              <p>
+                This is a non-commercial research site. The basemap, imagery and terrain are used under
+                their providers' terms and attribution requirements.
+              </p>
+              <p>
+                <strong>Statistics:</strong> visits and clicks are counted anonymously with <a href="https://www.goatcounter.com" target="_blank"
+                rel="noopener">GoatCounter</a>, without cookies or personal data.
+              </p>
+            </div>
+          </section>
+        </div>
+      </aside>
+    </div>
+
+    <div id="status" hidden></div>
+
+    <!-- Classic scripts only, so the page also runs when opened from disk.
+         Libraries pinned; the data before the code that reads it. -->
+    <script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/@protomaps/basemaps@5.7.2/dist/basemaps.js"></script>
+    <script src="site-config.js"></script>
+    <script src="data/alpice-core.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/stats.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/layers.js"></script>
+    <script src="js/outlines.js"></script>
+    <script src="js/popup.js"></script>
+    <script src="js/filters.js"></script>
+    <script src="js/tour.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>

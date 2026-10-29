@@ -80,7 +80,11 @@
       tiles: [config.worldImageryUrl],
       tileSize: 256,
       maxzoom: 19,
-      attribution: "© Esri, Maxar, Earthstar Geographics, and the GIS User Community",
+      // A mosaic: the capture date varies by place and zoom (Esri's imagery
+      // metadata, sampled across the Alps in October 2026).
+      attribution:
+        "© Esri, Vantor, Earthstar Geographics, and the GIS User Community; " +
+        "images from different years, in the Alps mostly 2021–2025",
     },
   };
   if (labelLayers.length) {
@@ -150,8 +154,8 @@
   map.addControl(
     new maplibregl.AttributionControl({
       compact: true,
-      customAttribution:
-        '<a href="https://mapterhorn.com/attribution/">© Mapterhorn</a> | <a href="https://maplibre.org">MapLibre</a>',
+      // "© Mapterhorn" comes with the terrain tilejson; adding it here showed it twice.
+      customAttribution: '<a href="https://maplibre.org">MapLibre</a>',
     }),
     "bottom-right",
   );

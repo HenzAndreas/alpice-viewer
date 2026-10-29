@@ -104,14 +104,14 @@ class DetailData(unittest.TestCase):
 
 
 class OutlineData(unittest.TestCase):
-    def test_lgm_has_no_holes(self):
-        # The nunataks are removed in the build (outline_only).
-        for f in load("alpice-outlines-lgm.js")["outlines_lgm"]["features"]:
-            self.assertEqual(len(f["geometry"]["coordinates"]), 1)
+    def test_lgm_adds_outside_patches(self):
+        # Ehlers (104 polygons) plus the GLACIMONTIS patches that touch none of them.
+        features = load("alpice-outlines-lgm.js")["outlines_lgm"]["features"]
+        self.assertGreater(len(features), 200)
 
     def test_outline_files(self):
         # js/outlines.js reads ALPICE_DATA.outlines_<key> from data/alpice-outlines-<key>.js.
-        for key in ("lgm", "lgm_ehlers", "lia", "today", "lia_full", "today_full"):
+        for key in ("lgm", "lia", "today", "lia_full", "today_full"):
             name = key.replace("_full", "-full")
             data = load(f"alpice-outlines-{name}.js")[f"outlines_{key}"]
             self.assertGreater(len(data["features"]), 50, key)

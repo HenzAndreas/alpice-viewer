@@ -66,10 +66,11 @@
 
   const max = layers.AGE_MAX_KA;
   const stops = layers.AGE_STOPS.map(([age, colour]) => `${colour} ${(age / 1000 / max) * 100}%`);
-  el("legend-bar").style.background = `linear-gradient(to right, ${stops.join(", ")})`;
+  // Old ages on the left, young on the right, as the age track (dir="rtl" in index.html).
+  el("legend-bar").style.background = `linear-gradient(to left, ${stops.join(", ")})`;
   const ticks = el("legend-ticks");
   for (let k = 0; k <= max; k += 5) {
-    ticks.append(h("span", { style: { left: `${(k / max) * 100}%` } }, k === max ? `${k}+` : String(k)));
+    ticks.append(h("span", { style: { right: `${(k / max) * 100}%` } }, k === max ? `${k}+` : String(k)));
   }
 
   /* ---------- counts ---------- */

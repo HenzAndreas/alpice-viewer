@@ -20,14 +20,14 @@ The data is on Zenodo:
 Please cite the paper when you use the data, and the original studies named in
 each record.
 
-Glacier outlines: Last Glacial Maximum from GLACIMONTIS: Lima, A.C., Dulfer,
-H.E., Hughes, A.L.C., Margold, M., Barr, I., Laabs, B.J.C., Flantua, S.G.A.
-(2026). Mountain glacier extents at the Last Glacial Maximum. *Scientific
-Data* 13, 629. [doi:10.1038/s41597-026-06841-z](https://doi.org/10.1038/s41597-026-06841-z);
+Glacier outlines: Last Glacial Maximum modified after Ehlers, J., Gibbard, P. L.
+& Hughes, P. D. 2011: Quaternary glaciations – extent and chronology. A Closer
+Look. Elsevier, Amsterdam; smaller ice patches wholly outside it from
+GLACIMONTIS: Lima, A.C., Dulfer, H.E., Hughes, A.L.C., Margold, M., Barr, I.,
+Laabs, B.J.C., Flantua, S.G.A. (2026). Mountain glacier extents at the Last
+Glacial Maximum. *Scientific Data* 13, 629. [doi:10.1038/s41597-026-06841-z](https://doi.org/10.1038/s41597-026-06841-z);
 data [doi:10.5281/zenodo.15600659](https://doi.org/10.5281/zenodo.15600659),
-CC BY 4.0. (Previously: modified after Ehlers, J., Gibbard, P. L. & Hughes, P. D.
-2011: Quaternary glaciations – extent and chronology. A Closer Look. Elsevier,
-Amsterdam.) Little Ice Age: Reinthaler and Paul (2025). Today: Paul et al. (2020).
+CC BY 4.0. Little Ice Age: Reinthaler and Paul (2025). Today: Paul et al. (2020).
 
 ## Licences
 
@@ -75,8 +75,8 @@ The glacier outlines come from outside the AlpIce-1 release, in
 
 | file | outline |
 | --- | --- |
-| `GLACIMONTIS_SHP/Shapefiles/FilteredReconstructedPaleoglaciers.shp` (+ `TechnicalValidation.shp` for the "European Alps" region) | Last Glacial Maximum, GLACIMONTIS (Lima et al., 2026); the polygons touching the Alps region, kept whole |
-| `LGMAlpsoutline_Ehlersmodified_mai2024_utm32N.shp` | Last Glacial Maximum modified after Ehlers et al. (2011); kept as the alternative, not used at the moment |
+| `GLACIMONTIS_SHP/Shapefiles/FilteredReconstructedPaleoglaciers.shp` (+ `TechnicalValidation.shp` for the "European Alps" region) | Last Glacial Maximum, GLACIMONTIS (Lima et al., 2026); the polygons touching the Alps region and none of the Ehlers polygons are added to Ehlers |
+| `LGMAlpsoutline_Ehlersmodified_mai2024_utm32N.shp` | Last Glacial Maximum modified after Ehlers et al. (2011); the main outline |
 | `LIA_Alps_Reinthaler_Paul_2024.shp` | Little Ice Age, Reinthaler and Paul (2025), [doi:10.5194/tc-19-753-2025](https://doi.org/10.5194/tc-19-753-2025) |
 | `paul2020_pangaea/c3s_gi_rgi11_s2_2015_v2/c3s_gi_rgi11_s2_2015_v2.shp` | today (2015–2017), Paul et al. (2020), [doi:10.5194/essd-12-1805-2020](https://doi.org/10.5194/essd-12-1805-2020), CC BY 4.0; downloaded from PANGAEA, [doi:10.1594/PANGAEA.909133](https://doi.org/10.1594/PANGAEA.909133) |
 

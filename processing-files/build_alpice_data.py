@@ -503,10 +503,9 @@ def build_landforms(source: Path):
 # line, which no background image can show; coordinates keep ~0.1 m.
 # #!!!! EDIT HERE THE OUTLINE SOURCES AND SIMPLIFICATION !!!!
 #
-# LGM: GLACIMONTIS (Lima et al., 2026), its curated "Filtered Reconstructed
-# Paleoglaciers" layer, the polygons touching its "European Alps" region.
-# On trial since 2026-10-23; to go back to the outline modified after Ehlers et
-# al. (2011), swap the two "lgm" lines (and the citation in index.html).
+# LGM: the outline modified after Ehlers et al. (2011), plus the small ice
+# patches of GLACIMONTIS (Lima et al., 2026) that lie wholly outside it, mostly
+# in the eastern Alps. GLACIMONTIS alone was on trial 2026-10-23 to -29.
 GLACIMONTIS = "GLACIMONTIS_SHP/Shapefiles"
 OUTLINE_TOLERANCE_M = 0.5
 # Invisible below zoom ~13, where a pixel is ~13 m.
@@ -514,20 +513,20 @@ OVERVIEW_TOLERANCE_M = 10
 OUTLINE_DECIMALS = 6
 OUTLINES = {
     # CHANGED FROM THE ORIGINAL DATA (said so in the viewer's panel and Credits):
-    # only the outer outline of each polygon is kept, the ice-free peaks
-    # (nunataks, 1,156 holes in the main polygon) are removed; and the outline,
-    # traced from a ~70 m raster as a staircase, is smoothed (see smooth_ring()).
+    # a GLACIMONTIS polygon is added only where it touches no Ehlers polygon;
+    # where the two overlap, Ehlers is kept as it is. Of those added, only the
+    # outer outline is kept (no nunataks), and the outline, traced from a ~70 m
+    # raster as a staircase, is smoothed (see smooth_ring()).
     "lgm": {
-        "source": f"{GLACIMONTIS}/FilteredReconstructedPaleoglaciers.shp",
-        "select": (f"{GLACIMONTIS}/TechnicalValidation.shp", "mrange4", "European Alps"),
+        "source": "outlines/LGMAlpsoutline_Ehlersmodified_mai2024_utm32N.shp",
         "tolerance": OUTLINE_TOLERANCE_M,
-        "outline_only": True,
-        "smooth_cell": 70,
+        "add_outside": {
+            "source": f"{GLACIMONTIS}/FilteredReconstructedPaleoglaciers.shp",
+            "select": (f"{GLACIMONTIS}/TechnicalValidation.shp", "mrange4", "European Alps"),
+            "outline_only": True,
+            "smooth_cell": 70,
+        },
     },
-    # "lgm": {"source": "outlines/LGMAlpsoutline_Ehlersmodified_mai2024_utm32N.shp", "tolerance": OUTLINE_TOLERANCE_M},
-    # TEMPORARY (2026-10-23): the Ehlers-based outline beside GLACIMONTIS, so
-    # Andreas can compare the two in the viewer. Remove once one is chosen.
-    "lgm_ehlers": {"source": "outlines/LGMAlpsoutline_Ehlersmodified_mai2024_utm32N.shp", "tolerance": OUTLINE_TOLERANCE_M},
     # LIA and today are large at full resolution (~17 MB each). Each also gets a
     # small overview file (`overview` m tolerance) that the page draws at once;
     # js/outlines.js swaps in the full file when zoomed in far enough to see
@@ -569,8 +568,8 @@ def smooth_ring(coords, cell):
     return np.vstack([points, points[:1]])
 
 
-def build_outline(root: Path, source: str, tolerance: float, select=None, outline_only=False, smooth_cell=None):
-    """Polygons as a GeoJSON collection with no attributes.
+def outline_polygons(root: Path, source: str, select=None, outline_only=False, smooth_cell=None):
+    """The polygons of one outline source, in UTM 32N.
 
     `select` is (shapefile, column, value): only the polygons touching that
     feature are kept, whole, e.g. the Alps out of a global layer. Whole rather
@@ -606,6 +605,23 @@ def build_outline(root: Path, source: str, tolerance: float, select=None, outlin
         rings = [Polygon(smooth_ring(poly.exterior.coords, smooth_cell)) for poly in geometry]
         geometry = gpd.GeoSeries(rings, crs=32632).make_valid().explode(index_parts=False)
         geometry = geometry[geometry.geom_type == "Polygon"]
+    return geometry
+
+
+def build_outline(root: Path, source: str, tolerance: float, add_outside=None, **options):
+    """Polygons as a GeoJSON collection with no attributes.
+
+    `options` go to outline_polygons(). `add_outside` names a second source
+    (its options likewise) whose polygons are added where they touch none of
+    the first, e.g. the small ice patches beyond the LGM ice sheet.
+    """
+    import pandas as pd
+
+    geometry = outline_polygons(root, source, **options)
+    if add_outside:
+        extra = outline_polygons(root, **add_outside)
+        extra = extra[~extra.intersects(geometry.union_all())]
+        geometry = gpd.GeoSeries(pd.concat([geometry, extra], ignore_index=True), crs=32632)
     geometry = geometry.simplify(tolerance, preserve_topology=True).to_crs(4326)
     features = [
         {"type": "Feature", "properties": {}, "geometry": geometry_json(geom, OUTLINE_DECIMALS)} for geom in geometry

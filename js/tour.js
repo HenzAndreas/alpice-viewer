@@ -31,12 +31,18 @@
   const EXAMPLE_EVENT = "ICEM-Wuethrich2018-A";
   const EXAMPLE_VIEW = { center: [7.474, 46.858], zoom: 12.3 };
 
+  /* What the map looked like before the example, restored when the step is left. */
+  let before = null;
+
   function showExample() {
     const event = A.layers.byEventId.get(EXAMPLE_EVENT);
     if (!event) return;
     const box = el("show-events");
+    before = { center: map.getCenter(), zoom: map.getZoom(), pitch: map.getPitch(), bearing: map.getBearing(), events: box.checked };
     if (!box.checked) box.click();
     map.once("moveend", () => {
+      // Next may have been pressed during the flight: then the step is gone.
+      if (!before) return;
       A.popup.show({ kind: "event", feature: event }, null);
       // The card moves beside the popup once it exists; the popup then pans
       // itself into view, which the "move" listener in startTour() follows.
@@ -45,69 +51,30 @@
     map.flyTo({ ...EXAMPLE_VIEW, pitch: 0, bearing: 0, duration: 3000, essential: true });
   }
 
+  /* Leaving the example: close its popup and fly back out to the view from before. */
+  function hideExample() {
+    if (!before) return;
+    const { events, ...view } = before;
+    before = null;
+    A.popup.close();
+    if (!events && el("show-events").checked) el("show-events").click();
+    map.flyTo({ ...view, duration: 2000, essential: true });
+  }
+
   // #!!!! EDIT HERE THE TOUR TEXT !!!!
   const STEPS = [
     {
       title: "AlpIce-1: dated glacier fluctuations in the Alps",
       text:
-        "This map shows the AlpIce-1 database: thousands of radiocarbon and surface exposure ages " +
-        "that record where the glaciers of the Alps once were, from the Last Glacial Maximum to the " +
-        "Holocene. Skip the tour, or click next to see how the viewer works.",
-    },
-    {
-      target: "#layers-section",
-      title: "Ages, events and landforms",
-      // From Kamleitner et al. (2026) and the README of the event ages (Data S6).
-      text: [
-        "Individual ages: more than 4200 surface exposure (¹⁰Be, ³⁶Cl) and radiocarbon ages, " +
-          "homogenized, quality controlled and evaluated for their palaeoglaciological context.",
-        "Event ages: a single age estimate representing the timing of a specific palaeoglacial " +
-          "event (e.g. glacier advance, ice-margin stabilization, deglaciation), derived from one or " +
-          "more dates evaluated in their stratigraphic and geomorphological context.",
-        "Landform catalogue: dated glacial and non-glacial landforms (ice margins, rock glaciers, " +
-          "rock avalanche deposits and others) that link the ages to geomorphic features. Undated " +
-          "landforms are included when part of a dated assemblage, e.g. a set of moraines.",
-      ],
-    },
-    {
-      target: "#outlines-section",
-      title: "Glacier outlines",
-      text:
-        "The black line is the ice extent at the Last Glacial Maximum. Open this section to " +
-        "switch it off, or to add the Little Ice Age and today's glaciers for comparison.",
-    },
-    {
-      // Opens the example itself, so the popup is on screen while this is read.
-      target: ".alpice-popup",
-      later: true,
-      enter: showExample,
-      title: "Click for the details",
-      text: () =>
-        `${touchOnly() ? "Tap" : "Click"} any symbol to open its record, like this dated moraine ` +
-        `near Bern. "Overview" shows the age, site, ` +
-        `context and reference; "Full record" every column of the AlpIce-1 tables — ` +
-        `${touchOnly() ? "tap" : "hover over"} a field name for its description. An event lists ` +
-        "the ages it was computed from, and each age links to its event.",
-    },
-    {
-      target: "#age-section",
-      title: "Colour is age",
-      text:
-        "Yellow is young, dark blue is old (in thousand years). Drag the two handles to show only " +
-        "the ages of one period.",
-    },
-    {
-      target: "#filter-section",
-      title: "Filters",
-      text:
-        "Narrow the map down by dating method, confidence, palaeoglaciological context and site " +
-        "type. Every active filter is listed at the top: click one to remove it, or Reset for " +
-        "all. Site types carry the code that starts each Site-ID, such as ICEM for ice margin.",
+        "This viewer visualizes the AlpIce-1 database: a compilation of published surface-exposure " +
+        "and radiocarbon ages constraining build-up, culmination and decay of past glaciers from the " +
+        "Last Glacial Maximum through the Holocene across the entire European Alps. Skip the tour, or " +
+        "click next to see how the viewer works.",
     },
     {
       target: ".maplibregl-ctrl-3d",
       title: "3D terrain",
-      text: "Press 3D to tilt the map and see the moraines and valleys in relief.",
+      text: "Press 3D to tilt the map.",
     },
     {
       target: ".maplibregl-ctrl-top-right .maplibregl-ctrl-group",
@@ -120,6 +87,55 @@
             "mouse button or hold Ctrl while dragging. The compass resets the view to north.",
     },
     {
+      target: "#layers-section",
+      title: "Ages, events and landforms",
+      // From Kamleitner et al. (2026) and the README of the event ages (Data S6).
+      text: [
+        "Individual ages: Single cosmogenic nuclide (¹⁰Be, ³⁶Cl) surface exposure ages and radiocarbon ages, " +
+          "homogenized, quality controlled and evaluated for their palaeoglaciological context.",
+        "Event ages: a single age estimate representing the timing of a specific palaeoglacial " +
+          "event (e.g. glacier advance, ice-margin stabilization, deglaciation), derived from one or more " +
+          "surface exposure or radiocarbon ages, evaluated in their stratigraphic and geomorphological context.",
+        "Landform catalogue: dated glacial and non-glacial landforms (ice margins, rock glaciers, " +
+          "rock avalanche deposits and others) that link compiled ages to geomorphic features. Undated " +
+          "landforms are included when part of a dated assemblage, e.g. a set of moraines.",
+      ],
+    },
+    {
+      // Opens the example itself, so the popup is on screen while this is read.
+      target: ".alpice-popup",
+      later: true,
+      enter: showExample,
+      leave: hideExample,
+      title: "Click for the details",
+      text: () =>
+        `${touchOnly() ? "Tap" : "Click"} on any symbol to open its record, like this dated moraine ` +
+        `near Bern. "Overview" shows the age, site, ` +
+        `context and reference; "Full record" every column of the AlpIce-1 tables — ` +
+        `${touchOnly() ? "tap" : "hover over"} a field name for its description.`,
+    },
+    {
+      target: "#age-section",
+      title: "Here colour indicates the age",
+      text:
+        "Yellow is young, dark blue is old (in thousand years). Drag the two handles to show only " +
+        "the ages of one period.",
+    },
+    {
+      target: "#filter-section",
+      title: "Filters",
+      text:
+        "Filter displayed data by dating method, confidence, palaeoglaciological context and site " +
+        "type. Every active filter is listed at the top: click one to remove it, or Reset for all.",
+    },
+    {
+      target: "#outlines-section",
+      title: "Glacier outlines",
+      text:
+        "The black line shows the empirically reconstructed ice extent at the Last Glacial Maximum. " +
+        "Open this section to switch it off, or to add the Little Ice Age and today's glaciers for comparison.",
+    },
+    {
       target: "#extras-section",
       title: "Map options",
       text: "Switch between the hillshade and satellite imagery, and switch on place names.",
@@ -129,7 +145,13 @@
       title: "Contribute to AlpIce",
       text:
         "Found an error, missing information, or a study that is not yet in AlpIce-1? " +
-        "Open this section to send it to us by e-mail.",
+        "Let us know! Open this section and use the e-mail link to send it to us.",
+    },
+    {
+      target: "#title-section",
+      title: "Want to read more?",
+      text: "Here you find the link to the scientific publication and the " +
+        "AlpIce-1 database. You find all other sources used in this viewer in the Credits section.",
     },
     {
       target: "#tour-open",
@@ -236,6 +258,7 @@
   function go(delta) {
     const next = index + delta;
     if (next < 0) return;
+    steps[index].leave?.();
     if (next >= steps.length) {
       A.stats.track("tour/done");
       closeTour();

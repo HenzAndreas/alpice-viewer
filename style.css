@@ -6,7 +6,7 @@
   --panel: rgba(17, 22, 32, 0.92);
   --border: #2a3242;
   --text: #e6eaf2;
-  --muted: #8b95a8;
+  --muted: #a9b2c3;
   /* The wordmark's pink. It is only ever used on the dark panel or the popover,
      where it runs 8.6:1 and up. */
   --accent: #d7acce;
@@ -44,11 +44,11 @@ html, body {
 #panel-shell {
   --glass-blur: 16px;
   --glass-saturate: 150%;
-  --glass-brightness: 78%;
+  --glass-brightness: 70%;
   /* The tint's own colour, as bare hsl() channels so that the alpha below can
      be set against it independently. */
   --glass-tint: 222 31% 10%;
-  --glass-alpha: 0.62;
+  --glass-alpha: 0.72;
   /* How far the pane below overhangs the panel. A Gaussian blur pulls in
      detail from well beyond its radius, so one radius of overhang still leaves
      the outermost pixels short of neighbours; two covers it. */
@@ -616,8 +616,10 @@ input[type="range"] { width: 100%; margin: 0; accent-color: #fff; }
   top: 7px;
   height: 4px;
   border-radius: 2px;
+  /* "to left": the track is dir="rtl" (old ages left, young right), and
+     gradients ignore the text direction. */
   background: linear-gradient(
-    to right,
+    to left,
     rgba(255, 255, 255, 0.18) var(--lo),
     #fff var(--lo),
     #fff var(--hi),
@@ -664,9 +666,10 @@ input[type="range"] { width: 100%; margin: 0; accent-color: #fff; }
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
-#legend-ticks span { position: absolute; top: 1px; transform: translateX(-50%); }
+/* Placed from the right, like the age track: 0 at the right edge, 30+ at the left. */
+#legend-ticks span { position: absolute; top: 1px; transform: translateX(50%); }
 #legend-ticks span:first-child { transform: none; }
-#legend-ticks span:last-child { transform: translateX(-100%); }
+#legend-ticks span:last-child { transform: translateX(100%); }
 
 #shade-strength-row { margin-top: -6px; padding-left: 22px; }
 

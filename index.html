@@ -25,7 +25,7 @@
       <div id="panel-glass" aria-hidden="true"></div>
       <aside id="panel">
         <header>
-          <div>
+          <div id="title-section">
             <h1 id="title">AlpIce-1</h1>
             <p id="subtitle">Dated palaeoglacier fluctuations in the Alps, from the Last Glacial Maximum to the Holocene</p>
             <p id="paper">
@@ -62,13 +62,13 @@
             <div class="layer-row">
               <input type="checkbox" id="show-events" />
               <label for="show-events">Event ages
-                <span class="layer-hint">at the mean location of their ages</span></label>
+                <span class="layer-hint">plotted at the mean location of associated individual ages</span></label>
               <output id="count-events" class="count"></output>
             </div>
             <div class="layer-row">
               <input type="checkbox" id="show-landforms" />
               <label for="show-landforms">Landform catalogue
-                <span class="layer-hint">coloured by event age; dashed: not dated</span></label>
+                <span class="layer-hint">colour coded like the associated event age; dashed: landform not dated</span></label>
               <output id="count-landforms" class="count"></output>
             </div>
           </section>
@@ -89,9 +89,9 @@
           <section class="control" id="age-section">
             <div class="control-head">
               <label for="age-min">Age</label>
-              <output id="age-value">0 – 30+ ka</output>
+              <output id="age-value">30+ – 0 ka</output>
             </div>
-            <div id="age-track" class="dual-range">
+            <div id="age-track" class="dual-range" dir="rtl">
               <input type="range" id="age-min" min="0" max="30" value="0" step="0.5" aria-label="Youngest age shown (ka)" />
               <input type="range" id="age-max" min="0" max="30" value="30" step="0.5" aria-label="Oldest age shown (ka)" />
             </div>
@@ -140,7 +140,7 @@
                 ></span>
             </button>
             <div id="site-types" hidden>
-              <p class="hint">The code is how each Site-ID begins, e.g. <b>ICEM</b>-Wuethrich2018-A.</p>
+              <p class="hint">Type of landform/unit dated</p>
               <div class="list-actions">
                 <button type="button" class="text-button" id="site-types-all" hidden>Show all</button>
               </div>
@@ -180,15 +180,8 @@
               <div class="layer-row">
                 <input type="checkbox" id="outline-lgm" />
                 <label for="outline-lgm">Last Glacial Maximum
-                  <span class="layer-hint">GLACIMONTIS, Lima et al. (2026); only the outline, ice-free peaks removed, smoothed</span></label>
+                  <span class="layer-hint">modified after Ehlers et al. (2011); smaller ice patches outside it after GLACIMONTIS, Lima et al. (2026)</span></label>
                 <span class="line-swatch" id="outline-lgm-swatch" aria-hidden="true"></span>
-              </div>
-              <!-- TEMPORARY: for comparing the two LGM outlines. -->
-              <div class="layer-row">
-                <input type="checkbox" id="outline-lgm_ehlers" />
-                <label for="outline-lgm_ehlers">Last Glacial Maximum (comparison)
-                  <span class="layer-hint">modified after Ehlers et al. (2011)</span></label>
-                <span class="line-swatch" id="outline-lgm_ehlers-swatch" aria-hidden="true"></span>
               </div>
             </div>
           </section>
@@ -279,15 +272,18 @@
                 original studies linked in each record.
               </p>
               <p>
-                <strong>Glacier outlines:</strong> Last Glacial Maximum: GLACIMONTIS, Lima, A. C., Dulfer,
-                H. E., Hughes, A. L. C., Margold, M., Barr, I., Laabs, B. J. C. and Flantua, S. G. A. (2026),
+                <strong>Glacier outlines:</strong> Last Glacial Maximum: modified after Ehlers, J.,
+                Gibbard, P. L. and Hughes, P. D. (2011), Quaternary glaciations – extent and chronology,
+                Elsevier. Smaller ice patches that lie wholly outside it are added from GLACIMONTIS, Lima,
+                A. C., Dulfer, H. E., Hughes, A. L. C., Margold, M., Barr, I., Laabs, B. J. C. and Flantua,
+                S. G. A. (2026),
                 <a href="https://doi.org/10.1038/s41597-026-06841-z" target="_blank" rel="noopener">Mountain
                   glacier extents at the Last Glacial Maximum, Scientific Data</a>; data:
                 <a href="https://doi.org/10.5281/zenodo.15600659" target="_blank" rel="noopener">Zenodo,
                   doi:10.5281/zenodo.15600659</a>, CC BY 4.0 (the Alps from the "Filtered Reconstructed
-                Paleoglaciers" layer; modified here: only the outline is shown, the ice-free peaks
-                (nunataks) inside it are removed, and the outline, traced from a ~70 m grid, is
-                smoothed). Little Ice Age:
+                Paleoglaciers" layer; modified here: a patch is added only where it does not overlap the
+                Ehlers outline, only its outline is shown, ice-free peaks inside it are removed, and the
+                outline, traced from a ~70 m grid, is smoothed). Little Ice Age:
                 <a href="https://doi.org/10.5194/tc-19-753-2025" target="_blank" rel="noopener">Reinthaler and
                   Paul (2025)</a>, as in the
                 <a href="https://henzandreas.github.io/little-ice-age-glacier-viewer/" target="_blank"
@@ -306,7 +302,9 @@
               <p>
                 <strong>Map data:</strong> terrain ©
                 <a href="https://mapterhorn.com/attribution/" target="_blank" rel="noopener">Mapterhorn</a>;
-                imagery © Esri, Maxar, Earthstar Geographics and the GIS User Community; labels ©
+                imagery © Esri, Vantor, Earthstar Geographics and the GIS User Community (a mosaic of
+                images from different years, in the Alps mostly 2021–2025, partly national orthophotos
+                such as swisstopo's SWISSIMAGE); labels ©
                 <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap
                 contributors</a>, served by <a href="https://protomaps.com" target="_blank" rel="noopener">Protomaps</a>
                 (or Esri when the page is opened from disk); rendering by

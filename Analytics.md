@@ -45,7 +45,7 @@ Events are listed among the paths.
 | `filter/sitetypes/all` | "Show all" in Site type |
 | `filter/remove-one`, `filter/reset` | × on one active filter, or "Reset" |
 | `layer/<samples\|events\|landforms>/<on\|off>` | Layer checkboxes |
-| `outline/<today\|lia\|lgm\|lgm_ehlers>/<on\|off>` | Glacier outline checkboxes |
+| `outline/<today\|lia\|lgm>/<on\|off>` | Glacier outline checkboxes |
 | `basemap/relief`, `basemap/imagery` | Basemap choice |
 | `imagery-shade/on\|off`, `imagery-shade/strength` | Hillshade over the imagery (strength once per drag) |
 | `labels/on\|off` | Place labels |

@@ -381,7 +381,7 @@
         .then(() => {
           content.querySelector(".pop-loading")?.remove();
           add(content, detailsTable(p));
-          if (eventLinks.length) add(content, h("div", { class: "pop-head" }, "Used in event age"), h("div", { class: "pop-list" }, eventLinks));
+          if (eventLinks.length) add(content, h("div", { class: "pop-head" }, "Contributes to event age"), h("div", { class: "pop-list" }, eventLinks));
           // The table arrived after the popup was placed, and made it taller.
           requestAnimationFrame(keepInView);
         })
@@ -404,7 +404,7 @@
       row("Compiled in", references(p.comp_ref)),
       row("Date-ID", p.date_ID),
     );
-    if (eventLinks.length) add(content, h("div", { class: "pop-head" }, "Used in event age"), h("div", { class: "pop-list" }, eventLinks));
+    if (eventLinks.length) add(content, h("div", { class: "pop-head" }, "Contributes to event age"), h("div", { class: "pop-list" }, eventLinks));
   }
 
   /* Every Excel column for one age, under its group heading. */
@@ -463,7 +463,7 @@
     } else {
       add(content, 
         row("Site", p.site_names || p.site_name, p.region),
-        row("Site type", joinNonEmpty([siteType(p), geom], " · ")),
+        row(["Site type · geometry", fieldInfo("site_type")], joinNonEmpty([siteType(p), geom], " · ")),
         row("Context", joinNonEmpty([p.pc_cat, p.pc_subcat, p.pc_time], " · ")),
         row("Palaeoglacier", joinNonEmpty([p.pgl_name, p.pgl_stad], " · ")),
         row("Ages", isTcn ? p.confid_no : p.confid_ra),
@@ -475,7 +475,7 @@
     }
     if (memberLinks.length) {
       add(content, 
-        h("div", { class: "pop-head" }, isTcn ? `Ages used (${memberLinks.length})` : "Defining age"),
+        h("div", { class: "pop-head" }, isTcn ? `Contributing individual ages (${memberLinks.length})` : "Defining age"),
         h("div", { class: "pop-list" }, memberLinks),
       );
     }
@@ -515,5 +515,5 @@
     }
   }
 
-  A.popup = { open, show, colourAt, loadDetails };
+  A.popup = { open, show, close: () => popup.remove(), colourAt, loadDetails };
 })((window.AlpIce = window.AlpIce || {}));

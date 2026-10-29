@@ -27,14 +27,6 @@
       casing: "rgba(255, 255, 255, 0.75)",
       width: ["interpolate", ["linear"], ["zoom"], 5, 1.2, 10, 2, 14, 2.8],
     },
-    // TEMPORARY: for comparing the two LGM outlines; remove once one is chosen.
-    lgm_ehlers: {
-      file: "data/alpice-outlines-lgm_ehlers.js",
-      on: false,
-      colour: "#1d4ed8",
-      casing: "rgba(255, 255, 255, 0.75)",
-      width: ["interpolate", ["linear"], ["zoom"], 5, 1.2, 10, 2, 14, 2.8],
-    },
     lia: {
       file: "data/alpice-outlines-lia.js",
       full: "data/alpice-outlines-lia-full.js",

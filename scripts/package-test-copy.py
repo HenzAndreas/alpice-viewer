@@ -52,9 +52,8 @@ What to try
   listed at the top of the filter area; click one to remove it.
 - "Colour by": age, or method, confidence and palaeoglaciological context
   in the colours of Fig. 3 of the AlpIce-1 paper.
-- "Glacier outlines": today, Little Ice Age and Last Glacial Maximum. Two LGM
-  outlines are shown for comparison (GLACIMONTIS in black, modified after
-  Ehlers et al. 2011 in blue); which one do you find more useful?
+- "Glacier outlines": today, Little Ice Age and Last Glacial Maximum (modified
+  after Ehlers et al. 2011, smaller ice patches outside it from GLACIMONTIS).
 - Map options: Hillshade or Satellite, 3D button at the top right.
 
 Feedback

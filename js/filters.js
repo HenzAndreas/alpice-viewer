@@ -180,7 +180,8 @@
   ageMin.addEventListener("change", () => A.stats.track("filter/age/youngest"));
   ageMax.addEventListener("change", () => A.stats.track("filter/age/oldest"));
 
-  const ageText = () => `${filters.age[0]} – ${filters.age[1] >= max ? `${max}+` : filters.age[1]} ka`;
+  // Oldest first, as on the bar (old ages on the left).
+  const ageText = () => `${filters.age[1] >= max ? `${max}+` : filters.age[1]} – ${filters.age[0]} ka`;
   syncers.push(() => {
     const [lo, hi] = filters.age;
     ageMin.value = String(lo);
